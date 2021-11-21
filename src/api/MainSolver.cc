@@ -33,6 +33,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "UFLRATheory.h"
 #include "LATheory.h"
 #include "LATHandler.h"
+#include "ArrayTheory.h"
 #include "OsmtApiException.h"
 #include "ModelBuilder.h"
 #include "IteHandler.h"
@@ -408,6 +409,11 @@ std::unique_ptr<Theory> MainSolver::createTheory(Logic & logic, SMTConfig & conf
         case Logic_t::QF_BOOL:
         {
             theory = new UFTheory(config, logic);
+            break;
+        }
+        case Logic_t::QF_AX:
+        {
+            theory = new ArrayTheory(config, logic);
             break;
         }
         case Logic_t::QF_CUF:
