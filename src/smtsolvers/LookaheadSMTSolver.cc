@@ -337,7 +337,7 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
         if (!decision[v]) {
             score->setChecked(v);
 #ifdef LADEBUG
-            cout << "Not a decision variable: " << v << "(" << theory_handler.getLogic.printTerm(theory_handler.varToTerm(v)) << ")\n";
+            cout << "Not a decision variable: " << v << "(" << theory_handler.getLogic().printTerm(theory_handler.varToTerm(v)) << ")\n";
 #endif
             continue;
         }
@@ -406,8 +406,12 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
 #ifdef LADEBUG
            printf("Checking lit %s%d\n", p == 0 ? "" : "-", v);
 #endif
+            lit_count = 0;
             uncheckedEnqueue(l);
             lbool res = laPropagateWrapper();
+            if(lit_count > nVars()/5) {
+                printf("Possibility for double propagation.\n");
+            }
             if (res == l_False)
             {
                 best = lit_Undef;
@@ -422,7 +426,7 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
             if (decisionLevel() == d+1)
             {
 #ifdef LADEBUG
-                printf(" -> Successfully propagated %d lits\n", trail.size() - tmp_trail_sz);
+//                printf(" -> Successfully propagated %d lits\n", trail.size() - tmp_trail_sz);
 #endif
                 score->updateSolverScore(ss, this);
             }
@@ -467,9 +471,9 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
     assert(best != lit_Undef);
 #ifdef LADEBUG
     printf("Lookahead phase over successfully\n");
-    printf("Best I found propagates high %d and low %d\n",
-           LAexacts[var(best)].getEx_h(),
-           LAexacts[var(best)].getEx_l());
+//    printf("Best I found propagates high %d and low %d\n",
+//           LAexacts[var(best)].getEx_h(),
+//           LAexacts[var(best)].getEx_l());
 #endif
     idx = (idx + i) % nVars();
     if (!okToPartition(var(best))) { unadvised_splits++; }

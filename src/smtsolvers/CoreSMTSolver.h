@@ -351,6 +351,7 @@ public:
     double    learntsize_inc;     // The limit for learnt clauses is multiplied with this factor each restart.                 (default 1.1)
     bool      expensive_ccmin;    // Controls conflict clause minimization.                                                    (default TRUE)
     int       polarity_mode;      // Controls which polarity the decision heuristic chooses. See enum below for allowed modes. (default polarity_false)
+    int       lit_count;          // Counts thd amount of propagated literals for double lookahead.
 
     enum { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
 
