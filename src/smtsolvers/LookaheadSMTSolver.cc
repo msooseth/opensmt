@@ -23,11 +23,17 @@ lbool LookaheadSMTSolver::solve_()
     before_lookahead = false;
     next_arr = new bool[nVars()]();
     auto it = next_init.begin();
+    next.growTo(nVars());
+    next_id.growTo(nVars());
+    close_to_prop = 0;
     while(it!=next_init.end()){
         next_arr[*it] = true;
+        next[close_to_prop] = *it;
+        next_id[*it] = close_to_prop;
         it++;
+        close_to_prop++;
     }
-    close_to_prop = next_init.size();
+    close_to_prop++;
     double nof_conflicts = restart_first;
 
     LALoopRes res = LALoopRes::unknown;
@@ -344,15 +350,15 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
     printf("Starting lookahead loop with %d vars\n", nVars());
 #endif
     tested = true;
-//    int count_pr=0;
-//    int predicted=close_to_prop;
-//    if(close_to_prop==1){
-//        printf("fun");
-//    }
+    int count_pr=0;
+    int predicted=close_to_prop;
+    if(close_to_prop==1){
+        printf("fun");
+    }
         for (Var v(idx % nVars()); !score->isAlreadyChecked(v); v = Var((idx + (++i)) % nVars()))
     {
             if(next_arr[v] || close_to_prop <= 0) {
-//                count_pr++;
+                count_pr++;
                 props++;
                 if (!decision[v]) {
                     score->setChecked(v);
@@ -469,7 +475,7 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
             }
     }
 //    }
-//    printf("Actual props %d vs predicted %d vs remaining %d \n", count_pr, predicted, close_to_prop);
+    printf("Actual props %d vs predicted %d vs remaining %d \n", count_pr, predicted, close_to_prop);
     tested = false;
     best = score->getBest();
     if (static_cast<unsigned int>(trail.size()) == dec_vars && best == lit_Undef)
