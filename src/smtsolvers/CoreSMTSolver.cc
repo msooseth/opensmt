@@ -1135,7 +1135,6 @@ void CoreSMTSolver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
     }
 }
 
-
 void CoreSMTSolver::uncheckedEnqueue(Lit p, CRef from)
 {
     assert(from != CRef_Fake || theory_handler.getLogic().isTheoryTerm(theory_handler.varToTerm(var(p))));
@@ -1199,15 +1198,15 @@ CRef CoreSMTSolver::propagate()
             if(c_size > 2 && value(c[2]) == l_True){
                 if(!tested) {
                     if (next_arr[var(~c[0])]) {
-//                        next[next_id[var(~c[0])]] = next[close_to_prop-1];
-//                        next_id[next[close_to_prop-1]] = next_id[var(~c[0])];
-//                        next_id[var(~c[0])] = -1;
+                        next[next_id[var(~c[0])]] = next[close_to_prop-1];
+                        next_id[next[close_to_prop-1]] = next_id[var(~c[0])];
+                        next_id[var(~c[0])] = -1;
                         close_to_prop--;
                     }
                     if (next_arr[var(~c[1])]) {
-//                        next[next_id[var(~c[1])]] = next[close_to_prop-1];
-//                        next_id[next[close_to_prop-1]] = next_id[var(~c[1])];
-//                        next_id[var(~c[1])] = -1;
+                        next[next_id[var(~c[1])]] = next[close_to_prop-1];
+                        next_id[next[close_to_prop-1]] = next_id[var(~c[1])];
+                        next_id[var(~c[1])] = -1;
                         close_to_prop--;
                     }
                     next_arr[var(~c[0])] = false;
@@ -1220,15 +1219,15 @@ CRef CoreSMTSolver::propagate()
             if(value(c[0]) == l_True || value(c[1]) == l_True){
                 if(!tested) {
                     if (next_arr[var(~c[0])]) {
-//                        next[next_id[var(~c[0])]] = next[close_to_prop-1];
-//                        next_id[next[close_to_prop-1]] = next_id[var(~c[0])];
-//                        next_id[var(~c[0])] = -1;
+                        next[next_id[var(~c[0])]] = next[close_to_prop-1];
+                        next_id[next[close_to_prop-1]] = next_id[var(~c[0])];
+                        next_id[var(~c[0])] = -1;
                         close_to_prop--;
                     }
                     if (next_arr[var(~c[1])]) {
-//                        next[next_id[var(~c[1])]] = next[close_to_prop-1];
-//                        next_id[next[close_to_prop-1]] = next_id[var(~c[1])];
-//                        next_id[var(~c[1])] = -1;
+                        next[next_id[var(~c[1])]] = next[close_to_prop-1];
+                        next_id[next[close_to_prop-1]] = next_id[var(~c[1])];
+                        next_id[var(~c[1])] = -1;
                         close_to_prop--;
                     }
                     next_arr[var(~c[0])] = false;
@@ -1281,15 +1280,15 @@ CRef CoreSMTSolver::propagate()
             if(value(c[1]) == l_False){
                 if(!tested){
                     if(next_arr[var(~c[0])]){
-//                        next[next_id[var(~c[1])]] = next[close_to_prop-1];
-//                        next_id[next[close_to_prop-1]] = next_id[var(~c[1])];
-//                        next_id[var(~c[1])] = -1;
+                        next[next_id[var(~c[0])]] = next[close_to_prop-1];
+                        next_id[next[close_to_prop-1]] = next_id[var(~c[0])];
+                        next_id[var(~c[0])] = -1;
                         close_to_prop--;
                     }
                     if(next_arr[var(~c[1])]){
-//                        next[next_id[var(~c[1])]] = next[close_to_prop-1];
-//                        next_id[next[close_to_prop-1]] = next_id[var(~c[1])];
-//                        next_id[var(~c[1])] = -1;
+                        next[next_id[var(~c[1])]] = next[close_to_prop-1];
+                        next_id[next[close_to_prop-1]] = next_id[var(~c[1])];
+                        next_id[var(~c[1])] = -1;
                         close_to_prop--;
                     }
                     next_arr[var(~c[0])] = false;
@@ -1335,13 +1334,13 @@ CRef CoreSMTSolver::propagate()
             } else if (value(c[2]) == l_False) {
                 if(!tested){
                     if(!next_arr[var(~c[0])]){
-//                        next[close_to_prop] = var(~c[0]);
-//                        next_id[var(~c[0])] = close_to_prop;
+                        next[close_to_prop] = var(~c[0]);
+                        next_id[var(~c[0])] = close_to_prop;
                         close_to_prop += 1;
                     }
                     if(!next_arr[var(~c[1])]){
-//                        next[close_to_prop] = var(~c[1]);
-//                        next_id[var(~c[1])] = close_to_prop;
+                        next[close_to_prop] = var(~c[1]);
+                        next_id[var(~c[1])] = close_to_prop;
                         close_to_prop += 1;
                     }
                     next_arr[var(~c[0])] = true;
