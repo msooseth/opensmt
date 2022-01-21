@@ -351,24 +351,12 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
 #endif
     tested = true;
     int count_pr=0;
-    int predicted=close_to_prop;
-    if(close_to_prop==5){
-        printf("fun");
-        for (int v = 0; v < nVars(); v++)
-        {
-            if(next_arr[v]){
-                printf("Allowed number: %d\n", v);
-            }
-        }
-    }
     if(close_to_prop > 0){
         for(int i = 0; i < close_to_prop; i++)
         {
             Var v = next[i];
             if(next_arr[v] || close_to_prop <= 0) {
-
                 count_pr++;
-                props++;
                 if (!decision[v]) {
                     score->setChecked(v);
 #ifdef LADEBUG
@@ -399,8 +387,8 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
                         next_id[v] = -1;
                         next_arr[v] = false;
                         close_to_prop--;
+                        i--;
                     }
-//                    score->setChecked(v);
                     // It is possible that all variables are assigned here.
                     // In this case it seems that we have a satisfying assignment.
                     // This is in fact a debug check
@@ -409,7 +397,7 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
                         printf("All vars set?\n");
 #endif
                         if (checkTheory(true) != TPropRes::Decide)
-                            return laresult::la_tl_unsat; // Problem is trivially unsat
+                            return laresult::la_tl_unsat; // Problem is tArivially unsat
                         assert(checkTheory(true) == TPropRes::Decide);
 #ifndef NDEBUG
                         for (int j = 0; j < clauses.size(); j++) {
@@ -463,6 +451,12 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
 #ifdef LADEBUG
                         printf(" -> Propagation resulted in backtrack\n");
 #endif
+                        next[next_id[v]] = next[close_to_prop-1];
+                        next_id[next[close_to_prop-1]] = next_id[v];
+                        next_id[v] = -1;
+                        next_arr[v] = false;
+                        close_to_prop--;
+                        i--;
                         score->updateRound();
                         break;
                     } else {
@@ -470,6 +464,12 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
                         printf(" -> Propagation resulted in backtrack: %d -> %d\n", d, decisionLevel());
 #endif
                         // Backtracking should happen.
+                        next[next_id[v]] = next[close_to_prop-1];
+                        next_id[next[close_to_prop-1]] = next_id[v];
+                        next_id[v] = -1;
+                        next_arr[v] = false;
+                        close_to_prop--;
+                        i--;
                         best = lit_Undef;
                         return laresult::la_unsat;
                     }
@@ -486,10 +486,10 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
                 }
             }
         }
-    } else {
+    }
+    if(close_to_prop == 0 || score->getBest() == lit_Undef){
         for (Var v(idx % nVars()); !score->isAlreadyChecked(v); v = Var((idx + (++i)) % nVars()))
     {
-            if(next_arr[v] || close_to_prop <= 0) {
 
                 count_pr++;
                 props++;
@@ -610,9 +610,7 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
                 }
             }
     }
-    }
-//    }
-    printf("Actual props %d vs predicted %d vs remaining %d \n", count_pr, predicted, close_to_prop);
+
     tested = false;
     best = score->getBest();
     if (static_cast<unsigned int>(trail.size()) == dec_vars && best == lit_Undef)
