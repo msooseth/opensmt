@@ -1193,7 +1193,7 @@ CRef CoreSMTSolver::propagate()
 
             unsigned c_size = c.size();
             Lit false_lit = ~p;
-
+            if(!tested || (c_size < 3) || (false_lit != c[2])){
 
             // Try to avoid inspecting the clause:
             if(c_size > 2 && value(c[2]) == l_True){
@@ -1330,6 +1330,11 @@ CRef CoreSMTSolver::propagate()
                         next_init.insert(var(~c[1]));
                     }
                 }
+            }
+            }
+            else{
+                *j++ = *i++;
+                continue;
             }
 NextClause:
             ;
