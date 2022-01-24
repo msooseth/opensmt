@@ -672,6 +672,7 @@ protected:
     vec<Lit>           lit_to_restore;             // For cancelUntilVarTemp
     vec<lbool>         val_to_restore;             // For cancelUntilVarTemp
     bool tested = true;
+    bool lookahead = false;
     //
     // Proof production
     //

@@ -259,7 +259,7 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::expandTree(LANode* n, LANode* c
 // backjump.
 LookaheadSMTSolver::LALoopRes LookaheadSMTSolver::solveLookahead()
 {
-
+    lookahead = true;
     score->updateRound();
     vec<LANode*> queue;
     LANode *root = new LANode();

@@ -1193,144 +1193,143 @@ CRef CoreSMTSolver::propagate()
 
             unsigned c_size = c.size();
             Lit false_lit = ~p;
-            if(!tested || (c_size < 3) || (false_lit != c[2])){
-
-            // Try to avoid inspecting the clause:
-            if(c_size > 2 && value(c[2]) == l_True){
-                if(!tested) {
-                    if (next_arr[var(~c[0])]) {
-                        close_to_prop--;
+            if(!lookahead || !tested || (c_size < 3) || (false_lit != c[2])){
+                // Try to avoid inspecting the clause:
+                if(c_size > 2 && value(c[2]) == l_True){
+                    if(!tested) {
+                        if (next_arr[var(~c[0])]) {
+                            close_to_prop--;
+                        }
+                        if (next_arr[var(~c[1])]) {
+                            close_to_prop--;
+                        }
+                        next_arr[var(~c[0])] = false;
+                        next_arr[var(~c[1])] = false;
                     }
-                    if (next_arr[var(~c[1])]) {
-                        close_to_prop--;
-                    }
-                    next_arr[var(~c[0])] = false;
-                    next_arr[var(~c[1])] = false;
+                    *j++ = *i++;
+                    continue;
                 }
-                *j++ = *i++;
-                continue;
-            }
 
-            if(value(c[0]) == l_True || value(c[1]) == l_True){
-                if(!tested) {
-                    if (next_arr[var(~c[0])]) {
-                        close_to_prop--;
+                if(value(c[0]) == l_True || value(c[1]) == l_True){
+                    if(!tested) {
+                        if (next_arr[var(~c[0])]) {
+                            close_to_prop--;
+                        }
+                        if (next_arr[var(~c[1])]) {
+                            close_to_prop--;
+                        }
+                        next_arr[var(~c[0])] = false;
+                        next_arr[var(~c[1])] = false;
                     }
-                    if (next_arr[var(~c[1])]) {
-                        close_to_prop--;
-                    }
-                    next_arr[var(~c[0])] = false;
-                    next_arr[var(~c[1])] = false;
+                    *j++ = *i++;
+                    continue;
                 }
-                *j++ = *i++;
-                continue;
-            }
 
-            if(c_size > 2 ){
-                if (c[0] == false_lit){
-                    if(value(c[2]) != l_False){
-                        c[0] = c[2], c[2] = false_lit;
-                    } else {
+                if(c_size > 2 ){
+                    if (c[0] == false_lit){
+                        if(value(c[2]) != l_False){
+                            c[0] = c[2], c[2] = false_lit;
+                        } else {
+                            c[0] = c[1], c[1] = false_lit;
+                        }
+                    }
+                    if (c[1] == false_lit){
+                        c[1] = c[2], c[2] = false_lit;
+                    }
+                }
+                else {
+                    if (c[0] == false_lit) {
                         c[0] = c[1], c[1] = false_lit;
                     }
                 }
-                if (c[1] == false_lit){
-                    c[1] = c[2], c[2] = false_lit;
-                }
-            }
-            else {
-                if (c[0] == false_lit) {
-                    c[0] = c[1], c[1] = false_lit;
-                }
-            }
 
 
-            if(c_size == 2){
-                assert(c[1] == false_lit);
-            } else {
-                assert(c[2] == false_lit);
-            }
-            i++;
-
-            // If 0th watch is true, then clause is already satisfied.
-            Lit first = c[0];
-            Watcher w = Watcher(cr, first);
-            // Look for new watch:
-            for (unsigned k = 3; k < c_size; k++) {
-                if (value(c[k]) != l_False) {
-                    c[2] = c[k];
-                    c[k] = false_lit;
-                    watches[~c[2]].push(w);
-                    goto NextClause;
-                }
-            }
-
-            *j++ = w;
-            if(value(c[1]) == l_False){
-                if(!tested){
-                    if(next_arr[var(~c[0])]){
-                        close_to_prop--;
-                    }
-                    if(next_arr[var(~c[1])]){
-                        close_to_prop--;
-                    }
-                    next_arr[var(~c[0])] = false;
-                    next_arr[var(~c[1])] = false;
+                if(c_size == 2){
+                    assert(c[1] == false_lit);
                 } else {
-                    if(before_lookahead){
-                        next_init.erase(var(~c[0]));
-                        next_init.erase(var(~c[1]));
+                    assert(c[2] == false_lit);
+                }
+                i++;
+
+                // If 0th watch is true, then clause is already satisfied.
+                Lit first = c[0];
+                Watcher w = Watcher(cr, first);
+                // Look for new watch:
+                for (unsigned k = 3; k < c_size; k++) {
+                    if (value(c[k]) != l_False) {
+                        c[2] = c[k];
+                        c[k] = false_lit;
+                        watches[~c[2]].push(w);
+                        goto NextClause;
                     }
                 }
-                if (value(first) == l_False) // clause is falsified
-                {
-                    confl = cr;
-                    qhead = trail.size();
-                    // Copy the remaining watches:
-                    while (i < end) {
-                        *j++ = *i++;
-                    }
-                    if (decisionLevel() == 0 && this->logsProofForInterpolation()) {
-                        this->finalizeProof(confl);
-                    }
-                } else {  // clause is unit under assignment:
-                    if (decisionLevel() == 0 && this->logsProofForInterpolation()) {
-                        // MB: we need to log the derivation of the unit clauses at level 0, otherwise the proof
-                        //     is not constructed correctly
-                        proof->beginChain(cr);
 
-                        for (unsigned k = 1; k < c_size; k++)
-                        {
-                            assert(level(var(c[k])) == 0);
-                            assert(reason(var(c[k])) != CRef_Fake);
-                            assert(reason(var(c[k])) != CRef_Undef);
-                            proof->addResolutionStep(reason(var(c[k])), var(c[k]));
+                *j++ = w;
+                if(value(c[1]) == l_False){
+                    if(!tested){
+                        if(next_arr[var(~c[0])]){
+                            close_to_prop--;
                         }
-                        CRef unitClause = ca.alloc(vec<Lit>{first});
-                        proof->endChain(unitClause);
-                        // Replace the reason for enqueing the literal with the unit clause.
-                        // Necessary for correct functioning of proof logging in analyze()
-                        cr = unitClause;
+                        if(next_arr[var(~c[1])]){
+                            close_to_prop--;
+                        }
+                        next_arr[var(~c[0])] = false;
+                        next_arr[var(~c[1])] = false;
+                    } else {
+                        if(before_lookahead){
+                            next_init.erase(var(~c[0]));
+                            next_init.erase(var(~c[1]));
+                        }
                     }
-                    uncheckedEnqueue(first, cr);
+                    if (value(first) == l_False) // clause is falsified
+                    {
+                        confl = cr;
+                        qhead = trail.size();
+                        // Copy the remaining watches:
+                        while (i < end) {
+                            *j++ = *i++;
+                        }
+                        if (decisionLevel() == 0 && this->logsProofForInterpolation()) {
+                            this->finalizeProof(confl);
+                        }
+                    } else {  // clause is unit under assignment:
+                        if (decisionLevel() == 0 && this->logsProofForInterpolation()) {
+                            // MB: we need to log the derivation of the unit clauses at level 0, otherwise the proof
+                            //     is not constructed correctly
+                            proof->beginChain(cr);
+
+                            for (unsigned k = 1; k < c_size; k++)
+                            {
+                                assert(level(var(c[k])) == 0);
+                                assert(reason(var(c[k])) != CRef_Fake);
+                                assert(reason(var(c[k])) != CRef_Undef);
+                                proof->addResolutionStep(reason(var(c[k])), var(c[k]));
+                            }
+                            CRef unitClause = ca.alloc(vec<Lit>{first});
+                            proof->endChain(unitClause);
+                            // Replace the reason for enqueing the literal with the unit clause.
+                            // Necessary for correct functioning of proof logging in analyze()
+                            cr = unitClause;
+                        }
+                        uncheckedEnqueue(first, cr);
+                    }
+                } else if (value(c[2]) == l_False) {
+                    if(!tested){
+                        if(!next_arr[var(~c[0])]){
+                            close_to_prop += 1;
+                        }
+                        if(!next_arr[var(~c[1])]){
+                            close_to_prop += 1;
+                        }
+                        next_arr[var(~c[0])] = true;
+                        next_arr[var(~c[1])] = true;
+                    } else {
+                        if(before_lookahead){
+                            next_init.insert(var(~c[0]));
+                            next_init.insert(var(~c[1]));
+                        }
+                    }
                 }
-            } else if (value(c[2]) == l_False) {
-                if(!tested){
-                    if(!next_arr[var(~c[0])]){
-                        close_to_prop += 1;
-                    }
-                    if(!next_arr[var(~c[1])]){
-                        close_to_prop += 1;
-                    }
-                    next_arr[var(~c[0])] = true;
-                    next_arr[var(~c[1])] = true;
-                } else {
-                    if(before_lookahead){
-                        next_init.insert(var(~c[0]));
-                        next_init.insert(var(~c[1]));
-                    }
-                }
-            }
             }
             else{
                 *j++ = *i++;
