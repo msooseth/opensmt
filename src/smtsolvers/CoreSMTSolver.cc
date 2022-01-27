@@ -1193,7 +1193,19 @@ CRef CoreSMTSolver::propagate()
 
             unsigned c_size = c.size();
             Lit false_lit = ~p;
+            if(!tested){
+                props++;
+            }
+//            if(tested && c_size > 2 && false_lit == c[2]){
+//                printf("Propagating %d as a third literal\n", var(false_lit));
+//            }
+//            if(!tested && c_size > 2 && false_lit == c[2]){
+//                printf("Actually propagating %d as a third literal\n", var(false_lit));
+//            }
             if(!lookahead || !tested || (c_size < 3) || (false_lit != c[2])){
+                if(!tested){
+                    inside_props++;
+                }
                 // Try to avoid inspecting the clause:
                 if(c_size > 2 && value(c[2]) == l_True){
                     if(!tested) {
@@ -1332,6 +1344,8 @@ CRef CoreSMTSolver::propagate()
                 }
             }
             else{
+//                Watcher w = Watcher(cr, c[0]);
+//                watches[~c[2]].push(w);
                 *j++ = *i++;
                 continue;
             }

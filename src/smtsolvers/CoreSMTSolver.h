@@ -454,6 +454,7 @@ protected:
     vec<CRef>           learnts;          // List of learnt clauses.
     vec<CRef>           tmp_reas;         // Reasons for minimize_conflicts 2
     int props = 0;
+    int inside_props = 0;
 #ifdef PEDANTIC_DEBUG
     vec<Clause*>        debug_reasons;    // Reasons for the theory deduced clauses
     Map<Var,int,VarHash> debug_reason_map; // Maps the deduced lit to the clause used to deduce it
@@ -671,7 +672,7 @@ protected:
     bool               cuvti;                      // For cancelUntilVarTemp
     vec<Lit>           lit_to_restore;             // For cancelUntilVarTemp
     vec<lbool>         val_to_restore;             // For cancelUntilVarTemp
-    bool tested = true;
+    bool tested = false;
     bool lookahead = false;
     //
     // Proof production
