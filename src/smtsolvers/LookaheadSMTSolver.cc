@@ -187,7 +187,7 @@ LookaheadSMTSolver::PathBuildResult LookaheadSMTSolver::setSolverToNode(LANode* 
             lbool res = laPropagateWrapper();
 //            printf("Amount of literals close to propagation: %lu\n", next_s.size());
 //            printf("Number of overall props: %d\n", props);
-            printf("Number of props: %d VS number of internal props: %d\n", props, inside_props);
+//            printf("Number of props: %d VS number of internal props: %d\n", props, inside_props);
             // Here it is possible that the solver is on level 0 and in an inconsistent state.  How can I check this?
             if (res == l_False) {
                 return PathBuildResult::pathbuild_tlunsat; // Indicate unsatisfiability
@@ -593,7 +593,7 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::lookaheadLoop(Lit& best)
             }
         }
 //    }
-    printf("Actual props %d vs predicted %d vs remaining %d \n", count_pr, predicted, close_to_prop);
+//    printf("Actual props %d vs predicted %d vs remaining %d \n", count_pr, predicted, close_to_prop);
     tested = false;
     best = score->getBest();
     if (static_cast<unsigned int>(trail.size()) == dec_vars && best == lit_Undef)
