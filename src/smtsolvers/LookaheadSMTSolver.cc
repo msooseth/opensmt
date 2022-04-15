@@ -1,21 +1,22 @@
-//
-// Created by prova on 07.02.19.
-//
+/*
+ * Copyright (c) 2022, Antti Hyvarinen <antti.hyvarinen@gmail.com>
+ * Copyright (c) 2022, Konstantin Britikov <konstantin.britikov@usi.ch>
+ *
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "LookaheadSMTSolver.h"
 #include "Proof.h"
 
 
-void LookaheadSMTSolver::attachClause(CRef cr)
-{
+void LookaheadSMTSolver::attachClause(CRef cr) {
     const Clause& c = ca[cr];
     assert(c.size() > 1);
     watches[~c[0]].push(Watcher(cr, c[1]));
     watches[~c[1]].push(Watcher(cr, c[0]));
-    if(c.size() > 2 ){
+    if (c.size() > 2) {
         watches[~c[2]].push(Watcher(cr, c[0]));
-    }
-    else{
+    } else {
         next_init.insert(var(~c[0]));
         next_init.insert(var(~c[1]));
     }
@@ -25,19 +26,15 @@ void LookaheadSMTSolver::attachClause(CRef cr)
 }
 
 
-void LookaheadSMTSolver::detachClause(CRef cr, bool strict)
-{
+void LookaheadSMTSolver::detachClause(CRef cr, bool strict) {
     const Clause& c = ca[cr];
     assert(c.size() > 1);
-    if (strict)
-    {
+    if (strict) {
         remove(watches[~c[0]], Watcher(cr, c[1]));
         remove(watches[~c[1]], Watcher(cr, c[0]));
-        if(c.size() > 2 )
+        if (c.size() > 2)
             remove(watches[~c[2]], Watcher(cr, c[0]));
-    }
-    else
-    {
+    } else {
         // Lazy detaching: (NOTE! Must clean all watcher lists before garbage collecting this clause)
         watches.smudge(~c[0]);
         watches.smudge(~c[1]);
@@ -49,14 +46,6 @@ void LookaheadSMTSolver::detachClause(CRef cr, bool strict)
     else            clauses_literals -= c.size();
 }
 
-
-
-LookaheadSMTSolver::LookaheadSMTSolver(SMTConfig& c, THandler& thandler)
-	: SimpSMTSolver(c, thandler)
-    , idx(0)
-	, score(c.lookahead_score_deep() ? (LookaheadScore*)(new LookaheadScoreDeep(assigns, c)) : (LookaheadScore*)(new LookaheadScoreClassic(assigns, c)))
-{}
-
 Var LookaheadSMTSolver::newVar(bool sign, bool dvar) {
     Var v = SimpSMTSolver::newVar(sign, dvar);
     score->newVar();
@@ -66,11 +55,11 @@ Var LookaheadSMTSolver::newVar(bool sign, bool dvar) {
 lbool LookaheadSMTSolver::solve_() {
     declareVarsToTheories();
     before_lookahead = false;
-    next_arr = new bool[nVars()]();
-    auto it = next_init.begin();
-    while(it!=next_init.end()){
-        next_arr[*it] = true;
-        it++;
+    next_arr.clear();
+    next_arr.growTo(nVars(), false);
+
+    for (auto it : next_init) {
+        next_arr[it] = true;
     }
     close_to_prop = next_init.size();
     double nof_conflicts = restart_first;
@@ -95,7 +84,7 @@ lbool LookaheadSMTSolver::solve_() {
             model[p] = value(p);
         }
     }
-    delete[] next_arr;
+
     switch (res) {
         case LALoopRes::unknown_final:
             return l_Undef;
@@ -145,19 +134,15 @@ lbool LookaheadSMTSolver::laPropagateWrapper() {
 #endif
             cancelUntil(out_btlevel);
             assert(value(out_learnt[0]) == l_Undef);
-            if (out_learnt.size() == 1)
-            {
+            if (out_learnt.size() == 1) {
                 CRef reason = CRef_Undef;
-                if (logsProofForInterpolation())
-                {
+                if (logsProofForInterpolation()) {
                     CRef crd = ca.alloc(out_learnt, false);
                     proof->endChain(crd);
                     reason = crd;
                 }
                 uncheckedEnqueue(out_learnt[0], reason);
-            }
-            else
-            {
+            } else {
                 CRef crd = ca.alloc(out_learnt, true);
                 if (logsProofForInterpolation()) {
                     proof->endChain(crd);
@@ -223,8 +208,7 @@ LookaheadSMTSolver::PathBuildResult LookaheadSMTSolver::setSolverToNode(LANode c
     for (int i = path.size() - 1; i >= 0; i--) {
         newDecisionLevel();
 
-        if (value(path[i]) == l_Undef)
-        {
+        if (value(path[i]) == l_Undef) {
 #ifdef LADEBUG
             printf("I will propagate %d\n", var(path[i]));
 #endif
@@ -287,8 +271,8 @@ LookaheadSMTSolver::laresult LookaheadSMTSolver::expandTree(LANode & n, std::uni
 
 LookaheadSMTSolver::LALoopRes LookaheadSMTSolver::solveLookahead() {
     struct PlainBuildConfig {
-        bool stopCondition(LANode &, int) { return false; }
-        LALoopRes exitState() const { return LALoopRes::unknown; }
+        static bool stopCondition(LANode &, int) { return false; }
+        static LALoopRes exitState() { return LALoopRes::unknown; }
     };
     return buildAndTraverse<LANode, PlainBuildConfig>(PlainBuildConfig()).first;
 };
@@ -312,15 +296,13 @@ CRef LookaheadSMTSolver::propagate()
     int     num_props = 0;
     watches.cleanAll();
 
-    while (qhead < trail.size())
-    {
+    while (qhead < trail.size()) {
         Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Watcher>&  ws  = watches[p];
         Watcher        *i, *j, *end;
         num_props++;
 
-        for (i = j = (Watcher*)ws, end = i + ws.size();  i != end;)
-        {
+        for (i = j = (Watcher*)ws, end = i + ws.size();  i != end;) {
             // Try to avoid inspecting the clause:
 
             // Make sure the false literal is data[1]:
@@ -333,8 +315,23 @@ CRef LookaheadSMTSolver::propagate()
             Lit false_lit = ~p;
 
             // Try to avoid inspecting the clause:
-            if(c_size > 2 && value(c[2]) == l_True){
-                if(!tested) {
+            if (c_size > 2 and value(c[2]) == l_True) {
+                if (!tested) {
+                    if (next_arr[var(~c[0])]) {
+                        close_to_prop--;
+                        next_arr[var(~c[0])] = false;
+                    }
+                    if (next_arr[var(~c[1])]) {
+                        close_to_prop--;
+                        next_arr[var(~c[1])] = false;
+                    }
+                }
+                *j++ = *i++;
+                continue;
+            }
+
+            if (value(c[0]) == l_True or value(c[1]) == l_True) {
+                if (!tested) {
                     if (next_arr[var(~c[0])]) {
                         close_to_prop--;
                     }
@@ -348,45 +345,18 @@ CRef LookaheadSMTSolver::propagate()
                 continue;
             }
 
-            if(value(c[0]) == l_True || value(c[1]) == l_True){
-                if(!tested) {
-                    if (next_arr[var(~c[0])]) {
-                        close_to_prop--;
-                    }
-                    if (next_arr[var(~c[1])]) {
-                        close_to_prop--;
-                    }
-                    next_arr[var(~c[0])] = false;
-                    next_arr[var(~c[1])] = false;
-                }
-                *j++ = *i++;
-                continue;
+            if (c[0] == false_lit) {
+                std::swap(c[0], c[1]);
             }
-
-            if(c_size > 2 ){
-                if (c[0] == false_lit){
-                    c[0] = c[1], c[1] = false_lit;
-                }
-                if (c[1] == false_lit){
-                    c[1] = c[2], c[2] = false_lit;
+            if (c_size > 2) {
+                if (c[1] == false_lit) {
+                    std::swap(c[1], c[2]);
                 }
                 if (value(c[0]) == l_False) {
-                    Lit temp = c[0];
-                    c[0] = c[1], c[1] = temp;
+                    std::swap(c[0], c[1]);
                 }
             }
-            else {
-                if (c[0] == false_lit) {
-                    c[0] = c[1], c[1] = false_lit;
-                }
-            }
-
-
-            if(c_size == 2){
-                assert(c[1] == false_lit);
-            } else {
-                assert(c[2] == false_lit || (c[1] == false_lit && value(c[2]) == l_False));
-            }
+            assert((c_size == 2 and c[1] == false_lit) or (c[2] == false_lit or (c[1] == false_lit and value(c[2]) == l_False)));
             i++;
 
             // If 0th watch is true, then clause is already satisfied.
@@ -395,32 +365,32 @@ CRef LookaheadSMTSolver::propagate()
             // Look for new watch:
             for (unsigned k = 3; k < c_size; k++) {
                 if (value(c[k]) != l_False) {
-                    c[2] = c[k];
-                    c[k] = false_lit;
+                    assert(c[2] == false_lit);
+                    std::swap(c[2], c[k]);
                     watches[~c[2]].push(w);
                     goto NextClause;
                 }
             }
 
             *j++ = w;
-            if(value(c[1]) == l_False){
-                if(!tested){
-                    if(next_arr[var(~c[0])]){
+            if (value(c[1]) == l_False) {
+                if (!tested) {
+                    if (next_arr[var(~c[0])]) {
                         close_to_prop--;
                     }
-                    if(next_arr[var(~c[1])]){
+                    if (next_arr[var(~c[1])]) {
                         close_to_prop--;
                     }
                     next_arr[var(~c[0])] = false;
                     next_arr[var(~c[1])] = false;
                 } else {
-                    if(before_lookahead){
+                    if (before_lookahead) {
                         next_init.erase(var(~c[0]));
                         next_init.erase(var(~c[1]));
                     }
                 }
-                if (value(first) == l_False) // clause is falsified
-                {
+                if (value(first) == l_False) {
+                    // clause is falsified
                     confl = cr;
                     qhead = trail.size();
                     // Copy the remaining watches:
@@ -436,8 +406,7 @@ CRef LookaheadSMTSolver::propagate()
                         //     is not constructed correctly
                         proof->beginChain(cr);
 
-                        for (unsigned k = 1; k < c_size; k++)
-                        {
+                        for (unsigned k = 1; k < c_size; k++) {
                             assert(level(var(c[k])) == 0);
                             assert(reason(var(c[k])) != CRef_Fake);
                             assert(reason(var(c[k])) != CRef_Undef);
@@ -452,17 +421,17 @@ CRef LookaheadSMTSolver::propagate()
                     uncheckedEnqueue(first, cr);
                 }
             } else if (value(c[2]) == l_False) {
-                if(!tested){
-                    if(!next_arr[var(~c[0])]){
+                if (!tested) {
+                    if (!next_arr[var(~c[0])]) {
                         close_to_prop += 1;
                     }
-                    if(!next_arr[var(~c[1])]){
+                    if (!next_arr[var(~c[1])]) {
                         close_to_prop += 1;
                     }
                     next_arr[var(~c[0])] = true;
                     next_arr[var(~c[1])] = true;
                 } else {
-                    if(before_lookahead){
+                    if (before_lookahead) {
                         next_init.insert(var(~c[0]));
                         next_init.insert(var(~c[1]));
                     }
@@ -503,128 +472,127 @@ std::pair<LookaheadSMTSolver::laresult,Lit> LookaheadSMTSolver::lookaheadLoop() 
     printf("Starting lookahead loop with %d vars\n", nVars());
 #endif
     tested = true;
-        for (Var v(idx % nVars()); !score->isAlreadyChecked(v); v = Var((idx + (++i)) % nVars()))
-    {
-            if(next_arr[v] || close_to_prop <= 0) {
-                if (!decision[v]) {
-                    score->setChecked(v);
+    for (Var v(idx % nVars()); !score->isAlreadyChecked(v); v = Var((idx + (++i)) % nVars())) {
+        if (next_arr[v] or close_to_prop <= 0) {
+            if (!decision[v]) {
+                score->setChecked(v);
 #ifdef LADEBUG
-                    cout << "Not a decision variable: " << v << "("
-                         << theory_handler.getLogic().printTerm(theory_handler.varToTerm(v)) << ")\n";
+                cout << "Not a decision variable: " << v << "("
+                     << theory_handler.getLogic().printTerm(theory_handler.varToTerm(v)) << ")\n";
 #endif
-                    continue;
-                }
-                if (v == (idx * nVars()) && skipped_vars_due_to_logic > 0)
-                    respect_logic_partitioning_hints = false; // Allow branching on these since we looped back.
-                if (respect_logic_partitioning_hints && !okToPartition(v)) {
-                    skipped_vars_due_to_logic++;
-                    std::cout << "Skipping " << v << " since logic says it's not good\n";
-                    continue; // Skip the vars that the logic considers bad to split on
-                }
+                continue;
+            }
+            if (v == (idx * nVars()) && skipped_vars_due_to_logic > 0) {
+                respect_logic_partitioning_hints = false; // Allow branching on these since we looped back.
+            }
+            if (respect_logic_partitioning_hints && !okToPartition(v)) {
+                skipped_vars_due_to_logic++;
+                std::cout << "Skipping " << v << " since logic says it's not good\n";
+                continue; // Skip the vars that the logic considers bad to split on
+            }
 #ifdef LADEBUG
                 printf("Checking var %d\n", v);
 #endif
-                Lit best = score->getBest();
-                if (value(v) != l_Undef || (best != lit_Undef && score->safeToSkip(v, best))) {
+            Lit best = score->getBest();
+            if (value(v) != l_Undef or (best != lit_Undef and score->safeToSkip(v, best))) {
 #ifdef LADEBUG
-                    printf("  Var is safe to skip due to %s\n",
-                           value(v) != l_Undef ? "being assigned" : "having low upper bound");
+                printf("  Var is safe to skip due to %s\n",
+                       value(v) != l_Undef ? "being assigned" : "having low upper bound");
 #endif
-                    if(value(v) != l_Undef && next_arr[v]){
-                        next_arr[v] = false;
-                        close_to_prop--;
-                    }
-                    // It is possible that all variables are assigned here.
-                    // In this case it seems that we have a satisfying assignment.
-                    // This is in fact a debug check
-                    if (static_cast<unsigned int>(trail.size()) == dec_vars) {
+                if (value(v) != l_Undef and next_arr[v]) {
+                    next_arr[v] = false;
+                    close_to_prop--;
+                }
+                // It is possible that all variables are assigned here.
+                // In this case it seems that we have a satisfying assignment.
+                // This is in fact a debug check
+                if (static_cast<unsigned int>(trail.size()) == dec_vars) {
 #ifdef LADEBUG
-                        printf("All vars set?\n");
+                    printf("All vars set?\n");
 #endif
 
-                        if (checkTheory(true) != TPropRes::Decide)
-                            return {laresult::la_tl_unsat, best}; // Problem is trivially unsat
-                        assert(checkTheory(true) == TPropRes::Decide);
+                    if (checkTheory(true) != TPropRes::Decide)
+                        return {laresult::la_tl_unsat, best}; // Problem is trivially unsat
+                    assert(checkTheory(true) == TPropRes::Decide);
 #ifndef NDEBUG
-                        for (int j = 0; j < clauses.size(); j++) {
-                            Clause &c = ca[clauses[j]];
-                            unsigned k;
-                            for (k = 0; k < c.size(); k++) {
-                                if (value(c[k]) == l_True) {
-                                    break;
-                                }
+                    for (int j = 0; j < clauses.size(); j++) {
+                        Clause &c = ca[clauses[j]];
+                        unsigned k;
+                        for (k = 0; k < c.size(); k++) {
+                            if (value(c[k]) == l_True) {
+                                break;
                             }
-                            assert(k < c.size());
                         }
-#endif
-                        best = lit_Undef;
-                        return {laresult::la_sat, best}; // Stands for SAT
+                        assert(k < c.size());
                     }
-                    continue;
+#endif
+                    best = lit_Undef;
+                    return {laresult::la_sat, best}; // Stands for SAT
                 }
-                if (trail.size() == nVars() + skipped_vars_due_to_logic) {
-                    std::cout << "; " << skipped_vars_due_to_logic << " vars were skipped\n";
-                    respect_logic_partitioning_hints = false;
-                    continue;
-                }
-                count++;
-                int p0 = 0, p1 = 0;
-                for (int p = 0; p < 2; p++)   // do for both polarities
-                {
-                    assert(decisionLevel() == d);
-                    double ss = score->getSolverScore(this);
-                    newDecisionLevel();
-                    Lit l = mkLit(v, p);
+                continue;
+            }
+            if (trail.size() == nVars() + skipped_vars_due_to_logic) {
+                std::cout << "; " << skipped_vars_due_to_logic << " vars were skipped\n";
+                respect_logic_partitioning_hints = false;
+                continue;
+            }
+            count++;
+            int p0 = 0, p1 = 0;
+            for (int polarity : {0, 1}) {
+                // do for both polarities
+                assert(decisionLevel() == d);
+                double ss = score->getSolverScore(this);
+                newDecisionLevel();
+                Lit l = mkLit(v, polarity);
 
 #ifdef LADEBUG
-                    printf("Checking lit %s%d\n", p == 0 ? "" : "-", v);
+                printf("Checking lit %s%d\n", p == 0 ? "" : "-", v);
 #endif
-                    uncheckedEnqueue(l);
-                    lbool res = laPropagateWrapper();
-                    if (res == l_False) {
-                        best = lit_Undef;
-                        return {laresult::la_tl_unsat, best};
-                    } else if (res == l_Undef) {
-                        cancelUntil(0);
-                        return {laresult::la_restart, best};
-                    }
-                    // Else we go on
-                    if (decisionLevel() == d + 1) {
+                uncheckedEnqueue(l);
+                lbool res = laPropagateWrapper();
+                if (res == l_False) {
+                    best = lit_Undef;
+                    return {laresult::la_tl_unsat, best};
+                } else if (res == l_Undef) {
+                    cancelUntil(0);
+                    return {laresult::la_restart, best};
+                }
+                // Else we go on
+                if (decisionLevel() == d + 1) {
 #ifdef LADEBUG
 //                printf(" -> Successfully propagated %d lits\n", trail.size() - tmp_trail_sz);
 #endif
-                        score->updateSolverScore(ss, this);
-                    } else if (decisionLevel() == d) {
+                    score->updateSolverScore(ss, this);
+                } else if (decisionLevel() == d) {
 #ifdef LADEBUG
-                        printf(" -> Propagation resulted in backtrack\n");
+                    printf(" -> Propagation resulted in backtrack\n");
 #endif
-                        score->updateRound();
-                        break;
-                    } else {
+                    score->updateRound();
+                    break;
+                } else {
 #ifdef LADEBUG
-                        printf(" -> Propagation resulted in backtrack: %d -> %d\n", d, decisionLevel());
+                    printf(" -> Propagation resulted in backtrack: %d -> %d\n", d, decisionLevel());
 #endif
-                        // Backtracking should happen.
-                        best = lit_Undef;
-                        return {laresult::la_unsat, best};
-                    }
-                    p == 0 ? p0 = ss : p1 = ss;
-                    // Update also the clause deletion heuristic?
-                    cancelUntil(decisionLevel() - 1);
+                    // Backtracking should happen.
+                    best = lit_Undef;
+                    return {laresult::la_unsat, best};
                 }
-                if (value(v) == l_Undef) {
-#ifdef LADEBUG
-                    printf("Updating var %d to (%d, %d)\n", v, p0, p1);
-#endif
-                    score->setLAValue(v, p0, p1);
-                    score->updateLABest(v);
-                }
+                polarity == 0 ? p0 = ss : p1 = ss;
+                // Update also the clause deletion heuristic?
+                cancelUntil(decisionLevel() - 1);
             }
+            if (value(v) == l_Undef) {
+#ifdef LADEBUG
+                printf("Updating var %d to (%d, %d)\n", v, p0, p1);
+#endif
+                score->setLAValue(v, p0, p1);
+                score->updateLABest(v);
+            }
+        }
     }
     tested = false;
     best = score->getBest();
-    if (static_cast<unsigned int>(trail.size()) == dec_vars && best == lit_Undef)
-    {
+    if (static_cast<unsigned int>(trail.size()) == dec_vars and best == lit_Undef) {
 #ifdef LADEBUG
         printf("All variables are already set, so we have nothing to branch on and this is a SAT answer\n");
 #endif
