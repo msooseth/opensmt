@@ -913,8 +913,9 @@ bool CoreSMTSolver::litRedundant(Lit p, uint32_t abstract_levels)
             // Just give up when fake reason is found -- but clean analyze_toclear
             if (cr == CRef_Fake)
             {
-                for (int j = top; j < analyze_toclear.size(); j++)
+                for (int j = top; j < analyze_toclear.size(); j++) {
                     seen[var(analyze_toclear[j])] = 0;
+                }
                 analyze_toclear.shrink(analyze_toclear.size() - top);
 
                 return false;

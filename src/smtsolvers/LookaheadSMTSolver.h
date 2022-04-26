@@ -19,7 +19,6 @@ protected:
     ConflQuota          confl_quota;
     int                 idx = 0;
     vec<bool>           next_arr;
-    std::set<Var>       next_init;
     int                 close_to_prop = 0;
     bool                before_lookahead = true;
     bool                tested = true;

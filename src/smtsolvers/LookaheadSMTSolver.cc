@@ -17,8 +17,14 @@ void LookaheadSMTSolver::attachClause(CRef cr) {
     if (c.size() > 2) {
         watches[~c[2]].push(Watcher(cr, c[0]));
     } else {
-        next_init.insert(var(~c[0]));
-        next_init.insert(var(~c[1]));
+        if(!next_arr[var(~c[0])]){
+            close_to_prop++;
+            next_arr[var(~c[0])] = true;
+        }
+        if(!next_arr[var(~c[1])]){
+            close_to_prop++;
+            next_arr[var(~c[1])] = true;
+        }
     }
 
     if (c.learnt()) learnts_literals += c.size();
@@ -47,6 +53,7 @@ void LookaheadSMTSolver::detachClause(CRef cr, bool strict) {
 }
 
 Var LookaheadSMTSolver::newVar(bool sign, bool dvar) {
+    next_arr.push(false);
     Var v = SimpSMTSolver::newVar(sign, dvar);
     score->newVar();
     return v;
@@ -58,10 +65,7 @@ lbool LookaheadSMTSolver::solve_() {
     next_arr.clear();
     next_arr.growTo(nVars(), false);
 
-    for (auto it : next_init) {
-        next_arr[it] = true;
-    }
-    close_to_prop = next_init.size();
+
     double nof_conflicts = restart_first;
 
     LALoopRes res = LALoopRes::unknown;
@@ -385,8 +389,8 @@ CRef LookaheadSMTSolver::propagate()
                     next_arr[var(~c[1])] = false;
                 } else {
                     if (before_lookahead) {
-                        next_init.erase(var(~c[0]));
-                        next_init.erase(var(~c[1]));
+                        next_arr[var(~c[0])] = false;
+                        next_arr[var(~c[1])] = false;
                     }
                 }
                 if (value(first) == l_False) {
@@ -432,8 +436,8 @@ CRef LookaheadSMTSolver::propagate()
                     next_arr[var(~c[1])] = true;
                 } else {
                     if (before_lookahead) {
-                        next_init.insert(var(~c[0]));
-                        next_init.insert(var(~c[1]));
+                        next_arr[var(~c[0])] = true;
+                        next_arr[var(~c[1])] = true;
                     }
                 }
             }
