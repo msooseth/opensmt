@@ -61,9 +61,6 @@ Var LookaheadSMTSolver::newVar(bool sign, bool dvar) {
 
 lbool LookaheadSMTSolver::solve_() {
     declareVarsToTheories();
-    before_lookahead = false;
-    next_arr.clear();
-    next_arr.growTo(nVars(), false);
 
 
     double nof_conflicts = restart_first;
@@ -387,11 +384,6 @@ CRef LookaheadSMTSolver::propagate()
                     }
                     next_arr[var(~c[0])] = false;
                     next_arr[var(~c[1])] = false;
-                } else {
-                    if (before_lookahead) {
-                        next_arr[var(~c[0])] = false;
-                        next_arr[var(~c[1])] = false;
-                    }
                 }
                 if (value(first) == l_False) {
                     // clause is falsified
@@ -427,18 +419,13 @@ CRef LookaheadSMTSolver::propagate()
             } else if (value(c[2]) == l_False) {
                 if (!tested) {
                     if (!next_arr[var(~c[0])]) {
-                        close_to_prop += 1;
+                        close_to_prop ++;
                     }
                     if (!next_arr[var(~c[1])]) {
-                        close_to_prop += 1;
+                        close_to_prop ++;
                     }
                     next_arr[var(~c[0])] = true;
                     next_arr[var(~c[1])] = true;
-                } else {
-                    if (before_lookahead) {
-                        next_arr[var(~c[0])] = true;
-                        next_arr[var(~c[1])] = true;
-                    }
                 }
             }
             NextClause:

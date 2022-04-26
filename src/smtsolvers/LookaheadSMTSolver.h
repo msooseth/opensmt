@@ -20,8 +20,7 @@ protected:
     int                 idx = 0;
     vec<bool>           next_arr;
     int                 close_to_prop = 0;
-    bool                before_lookahead = true;
-    bool                tested = true;
+    bool                tested = false;
 
     // -----------------------------------------------------------------------------------------
     // Data type for exact value array
