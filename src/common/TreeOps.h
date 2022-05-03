@@ -141,6 +141,7 @@ class Qel {
 // However, the list_out will not contain duplicates.
 //
 template<class T>
+[[deprecated]]
 void getTermsList(const vec<PTRef>& trs, vec<T>& list_out, Logic& logic) {
     vec<Qel<PtChild> > queue;
     Map<PtChild,bool,PtChildHash> seen;
@@ -178,13 +179,16 @@ void getTermsList(const vec<PTRef>& trs, vec<T>& list_out, Logic& logic) {
     }
 }
 
+
 template<class T>
+[[deprecated]]
 void getTermList(PTRef tr, vec<T>& list_out, Logic& logic) {
     getTermsList({tr}, list_out, logic);
 }
 
 // Get variables starting from the root
 //
+[[deprecated("Use variables(Logic &, PTRef) instead.")]]
 inline void
 getVars(PTRef tr, Logic& logic, MapWithKeys<PTRef,bool,PTRefHash>& vars)
 {
@@ -217,6 +221,7 @@ getVars(PTRef tr, Logic& logic, MapWithKeys<PTRef,bool,PTRefHash>& vars)
     }
 }
 
+[[deprecated]]
 inline std::vector<PTRef>
 getAtoms(PTRef tr, Logic & logic)
 {
@@ -253,6 +258,32 @@ getAtoms(PTRef tr, Logic & logic)
         seen.insert(tr);
     }
     return atoms;
+}
+
+template<typename TPred>
+class TermCollectorConfig : public DefaultVisitorConfig {
+    TPred predicate;
+    vec<PTRef> gatheredTerms;
+public:
+    TermCollectorConfig(TPred predicate) : predicate(std::move(predicate)) {}
+    vec<PTRef> && extractCollectedTerms() { return std::move(gatheredTerms); }
+    void visit(PTRef term) override { if (predicate(term)) gatheredTerms.push(term); }
+};
+
+template<typename TPred>
+static vec<PTRef> matchingSubTerms(Logic const & logic, PTRef term, TPred predicate) {
+    TermCollectorConfig<TPred> config(predicate);
+    TermVisitor<decltype(config)>(logic, config).visit(term);
+    return config.extractCollectedTerms();
+}
+
+inline vec<PTRef> subTerms(Logic const & logic, PTRef term) {
+    return matchingSubTerms(logic, term, [](PTRef) { return true; });
+}
+
+/* Returns all variables present in the given term */
+inline vec<PTRef> variables(Logic const & logic, PTRef term) {
+    return matchingSubTerms(logic, term, [&](PTRef subTerm) { return logic.isVar(subTerm); });
 }
 
 #endif
